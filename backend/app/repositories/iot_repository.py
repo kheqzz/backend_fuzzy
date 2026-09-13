@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, TYPE_CHECKING
+from typing import Generic, Optional, TypeVar, TYPE_CHECKING
 from sqlalchemy import select
 from app.db.base import Base
 from app.schemas.iot import IoTDeviceCreate, IoTDeviceUpdate, IoTDeviceSensorCreate, IoTDeviceSensorUpdate, SensorSnapshotCreate, SensorSnapshotBase 
@@ -14,6 +14,12 @@ class IoTDeviceRepository(BaseRepository[IoTDevice, IoTDeviceCreate, IoTDeviceUp
 
     def __init__(self):
         super().__init__(IoTDevice)
+
+    async def get_by_id(self, db, device_id: "UUID") -> Optional[IoTDevice]:
+        result = await db.execute(
+            select(IoTDevice).where(IoTDevice.iot_id == device_id)
+        )
+        return result.scalars().first()
 
 class IoTDeviceSensorRepository(BaseRepository[IoTDeviceSensor, IoTDeviceSensorCreate, IoTDeviceSensorUpdate]):
     """Repository for IoTDeviceSensor model."""

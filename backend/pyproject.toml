@@ -8,7 +8,7 @@ dependencies = [
     "alembic",
     "pydantic-settings",
     "python-jose[cryptography]",
-    
+    "pyjwt[crypto]",
     "python-multipart",
     "asyncpg>=0.31.0",
     "types-passlib==1.7.7.20260211",

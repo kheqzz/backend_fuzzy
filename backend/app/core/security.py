@@ -1,17 +1,12 @@
 import datetime
-from typing import Optional
-
+from uuid import UUID
+import jwt  
 from pwdlib import PasswordHash
 from pwdlib.hashers.bcrypt import BcryptHasher
-
 from app.core.config import settings
-
+from app.core import exceptions as ex
 
 pwd_context = PasswordHash([BcryptHasher()])
-
-def get_current_user():
-    ...
-
 
 def get_password_hash(password: str) -> str:
     """Hash a plaintext password."""
@@ -44,13 +39,12 @@ def create_access_token(
         "exp": expire,
     }
     payload.update(secrets)
-    # Import jwt only when needed to avoid hard dependency unless used
-    import jwt  # type: ignore
+   
 
-    return jwt.encode(payload, secrets["secret"], algorithm=secrets["algorithm"])
+    return jwt.encode(payload,settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def decode_access_token(token: str, secrets: dict) -> dict:
+def decode_access_token(token: str) -> UUID:
     """
     Decode a JWT token and return its payload.
 
@@ -64,8 +58,24 @@ def decode_access_token(token: str, secrets: dict) -> dict:
     Raises:
         jwt.exceptions.InvalidTokenError: If token is invalid or expired.
     """
-    import jwt  # type: ignore
-    return jwt.decode(token, secrets["secret"], algorithms=[secrets["algorithm"]])
+    exception = ex.UnauthorizedError(message="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+    try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            user_id_raw = payload.get('sub')
+    
+            if not user_id_raw:
+                raise exception
+        
+            try : user_id = UUID(str(user_id_raw))
+            except ValueError:
+                raise exception
+    
+            if user_id is None:
+                raise exception
+            return user_id
+            
+    except jwt.PyJWTError:
+            raise exception
 
 
 class AuthError(Exception):

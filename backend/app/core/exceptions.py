@@ -21,7 +21,14 @@ class EntityNotFoundError(AppException):
             status_code=404,
         )
 
+class UserNotFoundError(AppException):
+    """Raised when a user is not found in the database."""
 
+    def __init__(self, userLoginMethod: str):
+        super().__init__(
+            message=f"Invalid {userLoginMethod} or password",
+            status_code=404,
+        )
 class EntityAlreadyExistsError(AppException):
     """Raised when an entity already exists (e.g., duplicate email)."""
 
@@ -52,5 +59,6 @@ class ForbiddenError(AppException):
 class UnauthorizedError(AppException):
     """Raised when the user is not authenticated."""
 
-    def __init__(self, message: str = "Not authenticated"):
+    def __init__(self, message: str = "Not authenticated", headers: dict | None = None):
+        self.headers = headers
         super().__init__(message=message, status_code=401)

@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from uuid import UUID
 
+
+
 class UserBase(BaseModel):
     username: str
     email: str
@@ -20,8 +22,8 @@ class UserOut(UserBase):
         from_attributes = True
 
 class UserUpdate(BaseModel):
-    username: str
-    email: str
+    username: str | None = None
+    email: str | None = None
     full_name: str | None = None
     password: str | None = None
     is_active: bool | None = None
@@ -30,3 +32,8 @@ class UserUpdate(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user : UserOut

@@ -28,6 +28,22 @@ class UserService(BaseService[UserRepository]):
     def __init__(self, user_repo: UserRepository):
         super().__init__(user_repo)
 
+    async def login_user(self, username: str | None ,email: str | None , password: str, db: AsyncSession) -> Optional[User]:
+        """Authenticate a user with username and password."""
+        
+        if username is not None:
+            user = await self.repository.get_by_username(db, username)
+        elif email is not None:
+            user = await self.repository.get_by_email(db, email)
+        else:
+            raise InvalidCredentialsError()
+
+        if not user:
+            raise InvalidCredentialsError()
+        if not get_password_verify(password, user.hashed_password):
+            raise InvalidCredentialsError()
+        return user
+
     async def create_user(self, user_in: UserCreate, db: AsyncSession) -> User:
         """Create a new user."""
         # Check if username or email already exists
@@ -38,16 +54,12 @@ class UserService(BaseService[UserRepository]):
         # Hash the password
         hashed_password = get_password_hash(user_in.password)
 
-        # Create new user instance
-        new_user = User(
-            username=user_in.username,
-            email=user_in.email,
-            full_name=user_in.full_name,
-            hashed_password=hashed_password,
-        )
-
-        result = await self.repository.create(db, new_user)
-        return result
+        data = user_in.model_dump()
+        raw_password = data.pop("password")
+        
+        data["hashed_password"] = hashed_password
+        
+        return await self.repository.create(db, data)
 
     async def get_all_user(self, db: AsyncSession) -> Sequence[User] :
         """Get all users."""
@@ -59,10 +71,7 @@ class UserService(BaseService[UserRepository]):
         result = await self.repository.get_by_id(db, user_id)
         return result
 
-    async def get_user_by_username(self, username: str, db: AsyncSession) -> Optional[User]:
-        """Get a user by username."""
-        result = await self.repository.get_by_username(db, username)
-        return result
+   
 
     async def authenticate_user(self, username: str, password: str, db: AsyncSession) -> Optional[User]:
         """Authenticate a user with username and password."""

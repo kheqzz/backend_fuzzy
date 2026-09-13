@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional,TypeVar, TYPE_CHECKING
+from typing import Any, Generic, List, Optional,TypeVar, TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,8 +31,12 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await db.execute(select(self._query_model))
         return list(result.scalars().all())
 
-    async def create(self, db, obj_in) -> ModelType:
-        obj = self._query_model(**obj_in.model_dump())
+    async def create(self, db, obj_in:CreateSchemaType | dict[str, Any]) -> ModelType:
+        if isinstance(obj_in, BaseModel):
+            obj_in_data = obj_in.model_dump()
+        else:
+            obj_in_data = obj_in
+        obj = self._query_model(**obj_in_data)
         db.add(obj)
         await db.commit()
         await db.refresh(obj)
