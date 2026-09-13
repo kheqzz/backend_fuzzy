@@ -1,11 +1,11 @@
 from typing import Generic, TypeVar, TYPE_CHECKING
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from app.repositories.base import BaseRepository
 from app.schemas.user import UserCreate, UserUpdate
 from app.models.user import User
-
-if TYPE_CHECKING:
-    from uuid import UUID
+from uuid import UUID
+# if TYPE_CHECKING:
+#     from uuid import UUID
 
 
 
@@ -25,5 +25,28 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     async def get_by_username(self, db, username: str) -> User | None:
         result = await db.execute(
             select(User).where(User.username == username)
+        )
+        return result.scalars().first()
+
+    async def get_by_username_or_email(self, db, username: str | None = None, email: str | None = None) -> User | None:
+
+        if not username and not email:
+            return None  # Return None if both username and email are None
+
+        conditions = []
+        if username:
+            conditions.append(User.username == username)
+        if email:
+            conditions.append(User.email == email)
+        result = await db.execute(
+            select(User).where(
+                or_(*conditions)
+            )
+        )
+        return result.scalars().first()
+
+    async def get_by_id(self, db, user_id: UUID) -> User | None:
+        result = await db.execute(
+            select(User).where(User.id == user_id)
         )
         return result.scalars().first()

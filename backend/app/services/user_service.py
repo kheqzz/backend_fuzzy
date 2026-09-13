@@ -1,9 +1,9 @@
 from uuid import UUID
 from datetime import datetime
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Any
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.services.base import BaseService
 from app.core.security import get_password_hash, get_password_verify
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -12,9 +12,10 @@ from app.core.exceptions import (
     EntityNotFoundError,
     InvalidCredentialsError,
 )
+from app.repositories.user_repository import UserRepository
 
 
-class UserService:
+class UserService(BaseService[UserRepository]):
     """
     Service layer for User operations.
 
@@ -24,24 +25,15 @@ class UserService:
     - Permission checks (if needed)
     """
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    def __init__(self, user_repo: UserRepository):
+        super().__init__(user_repo)
 
-    async def create_user(self, user_in: UserCreate) -> User:
+    async def create_user(self, user_in: UserCreate, db: AsyncSession) -> User:
         """Create a new user."""
         # Check if username or email already exists
-        existing_user = await self.db.execute(
-            select(User).where(
-                or_(User.username == user_in.username, User.email == user_in.email)
-            )
-        )
-        if existing_user.fetchone():
-            # Determine which field conflicts
-            conflict = existing_user.keys()
-            if "username" in conflict:
-                raise EntityAlreadyExistsError("User", "username", user_in.username)
-            else:
-                raise EntityAlreadyExistsError("User", "email", user_in.email)
+        existing_user = await self.repository.get_by_username_or_email(db,user_in.username, user_in.email)
+        if existing_user:
+            raise EntityAlreadyExistsError("User", "username/email", f"{user_in.username}/{user_in.email}")
 
         # Hash the password
         hashed_password = get_password_hash(user_in.password)
@@ -54,65 +46,46 @@ class UserService:
             hashed_password=hashed_password,
         )
 
-        self.db.add(new_user)
-        await self.db.commit()
-        await self.db.refresh(new_user)
-        return new_user
-
-    async def get_all_user(self) -> Sequence[User] :
-        """Get all users."""
-        result = await self.db.execute(select(User))
-        return result.scalars().all()
-
-    async def get_user_by_id(self, user_id: UUID) -> Optional[User]:
-        """Get a user by ID."""
-        result = await self.db.get(User, user_id)
+        result = await self.repository.create(db, new_user)
         return result
 
-    async def get_user_by_username(self, username: str) -> Optional[User]:
-        """Get a user by username."""
-        result = await self.db.execute(
-            select(User).where(User.username == username)
-        )
-        return result.scalars().first()
+    async def get_all_user(self, db: AsyncSession) -> Sequence[User] :
+        """Get all users."""
+        result = await self.repository.get_all(db)
+        return result
 
-    async def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    async def get_user_by_id(self, user_id: UUID, db: AsyncSession) -> Optional[User]:
+        """Get a user by ID."""
+        result = await self.repository.get_by_id(db, user_id)
+        return result
+
+    async def get_user_by_username(self, username: str, db: AsyncSession) -> Optional[User]:
+        """Get a user by username."""
+        result = await self.repository.get_by_username(db, username)
+        return result
+
+    async def authenticate_user(self, username: str, password: str, db: AsyncSession) -> Optional[User]:
         """Authenticate a user with username and password."""
-        result = await self.db.execute(
-            select(User).where(User.username == username)
-        )
-        user = result.scalars().first()
+        user = await self.repository.get_by_username(db, username)
+        
         if not user:
             raise InvalidCredentialsError()
         if not get_password_verify(password, user.hashed_password):
             raise InvalidCredentialsError()
         return user
 
-    async def update_user(
-        self, user_id: UUID, user_in: UserUpdate
-    ) -> Optional[User]:
+    async def update_user(self, user_id: UUID, user_in: UserUpdate, db: AsyncSession) -> Optional[User]:
         """Update a user's information."""
         # Check if user exists
-        existing_user = await self.get_user_by_id(user_id)
+        existing_user = await self.repository.get_by_id(db, user_id)
         if not existing_user:
             raise EntityNotFoundError("User", user_id)
 
         # Check if another user already has the same username or email
-        result = await self.db.execute(
-            select(User).where(
-                or_(User.username == user_in.username, User.email == user_in.email),
-                User.id != user_id,
-            )
-        )
+        result = await self.repository.get_by_username_or_email(db, user_in.username, user_in.email)
 
-        if result.fetchone():
-            conflict = result.keys()
-            if "username" in conflict:
-                assert user_in.username is not None  # Ensure username is provided 
-                raise EntityAlreadyExistsError("User", "username", user_in.username)
-            else:
-                assert user_in.email is not None
-                raise EntityAlreadyExistsError("User", "email", user_in.email)
+        if result:
+            raise EntityAlreadyExistsError("User", "username/email", f"{user_in.username}/{user_in.email}")
 
         # Update fields
         update_data = user_in.model_dump(exclude_unset=True)
@@ -123,26 +96,23 @@ class UserService:
         if hasattr(user_in, "password") and user_in.password is not None:
             existing_user.hashed_password = get_password_hash(user_in.password)
 
-        await self.db.commit()
-        await self.db.refresh(existing_user)
-        return existing_user
+        
+        return await self.repository.update(db, existing_user)
 
-    async def delete_user(self, user_id: UUID) -> bool:
+    async def delete_user(self, user_id: UUID, db: AsyncSession) -> bool:
         """Delete a user."""
-        user = await self.get_user_by_id(user_id)
+        user = await self.repository.get_by_id(db, user_id)
         if not user:
             return False
-        await self.db.delete(user)
-        await self.db.commit()
-        return True
+        return await self.repository.delete(db, user_id)
 
-    async def get_users_paginated(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-    ) -> Sequence[User]:
-        """Get a paginated list of users."""
-        result = await self.db.execute(
-            select(User).offset(skip).limit(limit)
-        )
-        return result.scalars().all()
+    # async def get_users_paginated(
+    #     self,
+    #     skip: int = 0,
+    #     limit: int = 100,
+    # ) -> Sequence[User]:
+    #     """Get a paginated list of users."""
+    #     result = await self.db.execute(
+    #         select(User).offset(skip).limit(limit)
+    #     )
+    #     return result.scalars().all()

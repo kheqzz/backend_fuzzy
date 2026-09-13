@@ -1,11 +1,16 @@
 """Pagination utilities."""
 
 
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app import db
+
 class PaginationHelper:
     """Helper class for pagination functionality."""
 
     @staticmethod
-    async def paginate(query, page: int = 1, per_page: int = 100):
+    async def paginate(db: AsyncSession, query, page: int = 1, per_page: int = 10):
         """
         Apply pagination to a SQLAlchemy query.
 
@@ -20,8 +25,8 @@ class PaginationHelper:
         offset = (page - 1) * per_page
 
         # Get total count
-        total_query = query.statement.compile()
-        total_query = select(select_(func.count()).select_from(subquery(total_query)))
+        total_query = select(func.count()).select_from(query.subquery())
+        total_count = await db.scalar(total_query) or 0
         # This is a placeholder - actual implementation would depend on DB type
         total_count = await db.scalar(total_query)
 

@@ -1,5 +1,5 @@
 from uuid import UUID
-
+from app.api.deps import get_user_service
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,11 +15,12 @@ router = APIRouter()
 @router.post("/", response_model=UserOut)
 async def create_user(
     user_in: UserCreate,
+    user_service: UserService = Depends(get_user_service),
     db: AsyncSession = Depends(get_async_session),
 ):
     """Create a new user."""
-    service = UserService(db)
-    user = await service.create_user(user_in)
+    
+    user = await user_service.create_user(user_in, db)
     return user
 
 
@@ -28,22 +29,22 @@ async def read_users(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_async_session),
+    user_service: UserService = Depends(get_user_service)
 ):
     """Retrieve list of users."""
-    service = UserService(db)
-    users = await service.get_all_user()
-    return users
+    
+    return await user_service.get_all_user(db)
 
 
 @router.get("/{user_id}", response_model=UserOut)
 async def read_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_async_session),
+    user_service: UserService = Depends(get_user_service)
 ):
     """Get a user by UUID."""
-    service = UserService(db)
-    user = await service.get_user_by_id(user_id)
-    return user
+   
+    return await user_service.get_user_by_id(user_id, db)
 
 
 @router.put("/{user_id}", response_model=UserOut)
@@ -52,11 +53,11 @@ async def update_user(
     user_in: UserUpdate,
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
 ):
     """Update a user."""
-    service = UserService(db)
-    user = await service.update_user(user_id, user_in)
-    return user
+    
+    return await user_service.update_user(user_id, user_in, db)
 
 
 @router.delete("/{user_id}")
@@ -64,8 +65,10 @@ async def delete_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
 ):
     """Delete a user."""
-    service = UserService(db)
-    await service.delete_user(user_id)
+    success = await user_service.delete_user(user_id, db)
+    if not success:
+        return {"message": "User not found"}
     return {"message": "User deleted successfully"}

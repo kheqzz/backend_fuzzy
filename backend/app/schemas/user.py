@@ -20,8 +20,8 @@ class UserOut(UserBase):
         from_attributes = True
 
 class UserUpdate(BaseModel):
-    username: str | None = None
-    email: str | None = None
+    username: str
+    email: str
     full_name: str | None = None
     password: str | None = None
     is_active: bool | None = None

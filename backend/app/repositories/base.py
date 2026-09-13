@@ -20,25 +20,25 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Generic CRUD repository."""
 
-    def __init__(self, query_model: type[Base]):
+    def __init__(self, query_model: type[ModelType]):
         self._query_model = query_model
 
-    async def get(self, db, id) -> Optional[Base]:
+    async def get(self, db, id) -> List[ModelType]:
         result = await db.get(self._query_model, id)
         return result
 
-    async def get_all(self, db) -> List[Base]:
+    async def get_all(self, db) -> List[ModelType]:
         result = await db.execute(select(self._query_model))
-        return result.scalars().all()
+        return list(result.scalars().all())
 
-    async def create(self, db, obj_in) -> Base:
+    async def create(self, db, obj_in) -> ModelType:
         obj = self._query_model(**obj_in.model_dump())
         db.add(obj)
         await db.commit()
         await db.refresh(obj)
         return obj
 
-    async def update(self, db, obj_in) -> Base:
+    async def update(self, db, obj_in) -> ModelType:
         obj = await db.get(self._query_model, obj_in.id)
         if not obj:
             raise ValueError("Object not found")
