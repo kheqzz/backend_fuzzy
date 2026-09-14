@@ -27,6 +27,11 @@ class IoTDeviceSensorRepository(BaseRepository[IoTDeviceSensor, IoTDeviceSensorC
     def __init__(self):
         super().__init__(IoTDeviceSensor)
 
+    async def get_by_id(self, db, sensor_id: "UUID") -> Optional[IoTDeviceSensor]:
+        result = await db.execute(
+            select(IoTDeviceSensor).where(IoTDeviceSensor.sensor_id == sensor_id)
+        )
+        return result.scalars().first()
 
 class SensorSnapshotRepository(BaseRepository[SensorSnapshot, SensorSnapshotCreate, SensorSnapshotBase]):
     """Repository for SensorSnapshot model."""

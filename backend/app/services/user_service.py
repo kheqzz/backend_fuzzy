@@ -93,20 +93,17 @@ class UserService(BaseService[UserRepository]):
         # Check if another user already has the same username or email
         result = await self.repository.get_by_username_or_email(db, user_in.username, user_in.email)
 
-        if result:
+        if result and result.id != user_id:
             raise EntityAlreadyExistsError("User", "username/email", f"{user_in.username}/{user_in.email}")
 
         # Update fields
         update_data = user_in.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(existing_user, field, value)
-
-        # Hash password if changed
-        if hasattr(user_in, "password") and user_in.password is not None:
-            existing_user.hashed_password = get_password_hash(user_in.password)
+        
+        if 'password' in update_data and update_data['password'] is not None:
+            update_data['hashed_password'] = get_password_hash(update_data.pop('password'))
 
         
-        return await self.repository.update(db, existing_user)
+        return await self.repository.update(db, user_id, update_data)
 
     async def delete_user(self, user_id: UUID, db: AsyncSession) -> bool:
         """Delete a user."""

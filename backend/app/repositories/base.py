@@ -6,10 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import Base
 from pydantic import BaseModel
+from uuid import UUID
 
-
-if TYPE_CHECKING:
-    from uuid import UUID
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -42,11 +40,15 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.refresh(obj)
         return obj
 
-    async def update(self, db, obj_in) -> ModelType:
-        obj = await db.get(self._query_model, obj_in.id)
+    async def update(self, db,id: UUID,obj_in: Any | BaseModel) -> ModelType:
+        obj = await db.get(self._query_model, id)
         if not obj:
             raise ValueError("Object not found")
-        for field, value in obj_in.model_dump().items():
+
+        update_data = (obj_in.model_dump(exclude_unset=True) 
+                       if isinstance(obj_in, BaseModel)
+                         else obj_in)
+        for field, value in update_data.items():
             setattr(obj, field, value)
         await db.commit()
         await db.refresh(obj)

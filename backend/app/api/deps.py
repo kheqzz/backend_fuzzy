@@ -9,12 +9,23 @@ from app.db.dependencies import get_async_session
 from app.core.security import decode_access_token
 from app import db
 from app.core.exceptions import EntityNotFoundError as ex
+from app.models.iot import IoTDevice, IoTDeviceSensor, SensorSnapshot
 from app.models.user import User
+from app.repositories.iot_repository import IoTDeviceRepository, IoTDeviceSensorRepository, SensorSnapshotRepository
+from app.services.iot_service import IoTDeviceService, IoTSensorService, SensorSnapshot, IoTDeviceSensor, SnapshotService
 
 
 def get_user_service() -> UserService:
     return UserService(UserRepository())
 
+def getIoTDeviceService() -> IoTDeviceService:
+    return IoTDeviceService(IoTDeviceRepository())
+
+def getSensorSnapshotService() -> SnapshotService:
+    return SnapshotService(SensorSnapshotRepository())
+
+def getIoTDeviceSensorService() -> IoTSensorService:
+    return IoTSensorService(IoTDeviceSensorRepository())
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
 dbDeps = Annotated[AsyncSession, Depends(get_async_session)]
