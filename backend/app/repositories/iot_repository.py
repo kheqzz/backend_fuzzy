@@ -21,6 +21,12 @@ class IoTDeviceRepository(BaseRepository[IoTDevice, IoTDeviceCreate, IoTDeviceUp
         )
         return result.scalars().first()
 
+    async def get_all_devices_by_user_id(self, db, user_id: "UUID") -> list[IoTDevice]:
+        result = await db.execute(
+            select(IoTDevice).where(IoTDevice.user_id == user_id)
+        )
+        return result.scalars().all()
+
 class IoTDeviceSensorRepository(BaseRepository[IoTDeviceSensor, IoTDeviceSensorCreate, IoTDeviceSensorUpdate]):
     """Repository for IoTDeviceSensor model."""
 
@@ -33,6 +39,11 @@ class IoTDeviceSensorRepository(BaseRepository[IoTDeviceSensor, IoTDeviceSensorC
         )
         return result.scalars().first()
 
+    async def get_all_sensors_by_iot_id(self, db, iot_id: "UUID") -> list[IoTDeviceSensor]:
+        result = await db.execute(
+            select(IoTDeviceSensor).where(IoTDeviceSensor.iot_device_id == iot_id)
+        )
+        return result.scalars().all()
 class SensorSnapshotRepository(BaseRepository[SensorSnapshot, SensorSnapshotCreate, SensorSnapshotBase]):
     """Repository for SensorSnapshot model."""
 

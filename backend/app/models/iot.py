@@ -8,6 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+if TYPE_CHECKING:
+    from app.models.user import User
 
 class IoTDevice(Base):
     """IoT Device model."""
@@ -19,7 +21,7 @@ class IoTDevice(Base):
         primary_key=True,
         default=uuid4,
     )
-    
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())
@@ -29,7 +31,7 @@ class IoTDevice(Base):
     # Relationships
     sensors: Mapped[List['IoTDeviceSensor']] = relationship("IoTDeviceSensor", back_populates="iot_device", cascade="all, delete-orphan")
     snapshot_device: Mapped[List['SensorSnapshot']] = relationship("SensorSnapshot", back_populates="iot_device_snapshot", cascade="all, delete-orphan")
-
+    user: Mapped['User'] = relationship("User", back_populates="iot_devices")
 
 class IoTDeviceSensor(Base):
     """IoT Device Sensor model."""

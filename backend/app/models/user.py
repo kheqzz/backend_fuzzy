@@ -9,8 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 # Use TYPE_CHECKING to avoid circular imports during runtime
-# if TYPE_CHECKING:
-#     from app.models import 
+if TYPE_CHECKING:
+    from app.models import IoTDevice
 
 # Edit this class if you want to add more fields to the User model. Make sure to also update the corresponding Pydantic schemas in app/schemas/user.py and any other places where the User model is used.
 class User(Base):
@@ -38,4 +38,7 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+    # Relationships
+    iot_devices: Mapped[List['IoTDevice']] = relationship('IoTDevice', back_populates='user', cascade="all, delete-orphan")
 

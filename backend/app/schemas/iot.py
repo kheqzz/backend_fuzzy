@@ -7,6 +7,7 @@ class IoTDeviceBase(BaseModel):
     iot_firmware_version: str
 
 class IoTDeviceCreate(IoTDeviceBase):
+    
     pass
 
 class IoTDeviceOut(IoTDeviceBase):

@@ -21,10 +21,11 @@ class IoTDeviceService(BaseService[IoTDeviceRepository]):
     def __init__(self, iot_repo: IoTDeviceRepository):
         super().__init__(iot_repo)
 
-    async def add_device(self, db: AsyncSession, device_data: dict[str, Any]) -> "IoTDevice":
+    async def add_device(self, db: AsyncSession, device_data: dict[str, Any], user_id: UUID) -> "IoTDevice":
         """
         Add a new IoT device to the database.
         """
+        device_data['user_id'] = user_id
         return await self.repository.create(db, device_data)
 
     async def get_all_devices(self, db: AsyncSession) -> Sequence["IoTDevice"]:
@@ -32,6 +33,15 @@ class IoTDeviceService(BaseService[IoTDeviceRepository]):
         Retrieve all IoT devices from the database.
         """
         return await self.repository.get_all(db)
+
+    async def get_all_devices_by_user_id(self, db: AsyncSession, user_id: UUID) -> Sequence["IoTDevice"]:
+        """
+        Retrieve all IoT devices associated with a specific user ID.
+        """
+        devices = await self.repository.get_all_devices_by_user_id(db, user_id)
+        if not devices:
+            raise ex.IoTNotFoundError(entity_id=user_id, entity_name="IoTDevice")
+        return devices
 
     async def get_device_by_id(self, db: AsyncSession, device_id: UUID) -> Optional["IoTDevice"]:
         """
@@ -82,10 +92,11 @@ class IoTSensorService(BaseService[IoTDeviceSensorRepository]):
     def __init__(self, sensor_repo: IoTDeviceSensorRepository):
         super().__init__(sensor_repo)
 
-    async def add_sensor(self, db: AsyncSession, sensor_data: dict[str, Any]) -> "IoTDeviceSensor":
+    async def add_sensor(self, db: AsyncSession, sensor_data: dict[str, Any], device_id: UUID) -> "IoTDeviceSensor":
         """
         Add a new IoT sensor to the database.
         """
+        sensor_data["iot_device_id"] = device_id
         return await self.repository.create(db, sensor_data)
 
     async def get_all_sensors(self, db: AsyncSession) -> Sequence["IoTDeviceSensor"]:
@@ -102,7 +113,15 @@ class IoTSensorService(BaseService[IoTDeviceSensorRepository]):
         if not sensor:
             raise ex.EntityNotFoundError(entity_id=sensor_id, entity_name="IoTDeviceSensor")
         return sensor
-
+    async def get_all_sensors_by_iot_id(self, db: AsyncSession, iot_id: UUID) -> Sequence["IoTDeviceSensor"]:
+        """
+        Retrieve all IoT sensors associated with a specific IoT device ID.
+        """
+        sensors = await self.repository.get_all_sensors_by_iot_id(db, iot_id)
+        if not sensors:
+            raise ex.EntityNotFoundError(entity_id=iot_id, entity_name="IoTDevice")
+        return sensors
+    
     async def update_sensor(self, db: AsyncSession, sensor_id: UUID, sensor_data: dict[str, Any]) -> "IoTDeviceSensor":
         """
         Update an existing IoT sensor in the database.
