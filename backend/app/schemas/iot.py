@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 
 class IoTDeviceBase(BaseModel):
@@ -13,8 +13,7 @@ class IoTDeviceCreate(IoTDeviceBase):
 class IoTDeviceOut(IoTDeviceBase):
     iot_id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class IoTDeviceUpdate(BaseModel):
     name: str | None = None
@@ -33,8 +32,7 @@ class IoTDeviceSensorOut(IoTDeviceSensorBase):
     sensor_id: UUID
     iot_device_id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class IoTDeviceSensorUpdate(IoTDeviceSensorBase):
     pass
@@ -51,6 +49,5 @@ class SensorSnapshotOut(SensorSnapshotBase):
     iot_device_id: UUID
     sensor_id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 

@@ -34,24 +34,22 @@ def get_logger(name: str) -> logging.Logger:
     """
     logger = logging.getLogger(name)
 
-    if logger.hasHandlers():
-        return logger
+    if not logger.handlers:
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
 
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+        handler: logging.Handler
+        if settings.PROJECT_NAME == "development":
+            handler = logging.StreamHandler()
+            handler.setLevel(logging.DEBUG)
+        else:
+            handler = logging.FileHandler("app.log")
+            handler.setLevel(logging.INFO)
 
-    handler: logging.Handler
-    if settings.PROJECT_NAME == "development":
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-    else:
-        handler = logging.FileHandler("app.log")
-        handler.setLevel(logging.INFO)
-
-    handler.setFormatter(formatter)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
 
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
 
     return logger

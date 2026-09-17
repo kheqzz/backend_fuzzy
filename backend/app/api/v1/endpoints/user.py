@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from app.core.security import get_password_hash, create_access_token
-from app.core.exceptions import UserNotFoundError as ex,UnauthorizedError 
+from app.core.exceptions import UserNotFoundError as ex,UnauthorizedError, EntityNotFoundError
 from app.models.user import User
 from app.schemas.user import TokenResponse, UserCreate, UserOut, UserUpdate
 from app.db.dependencies import get_async_session
@@ -65,8 +65,10 @@ async def read_user(
     user_service: UserService = Depends(get_user_service)
 ):
     """Get a user by UUID."""
-   
-    return await user_service.get_user_by_id(user_id, db)
+    user = await user_service.get_user_by_id(user_id, db)
+    if user is None:
+        raise EntityNotFoundError(entity_name="User", entity_id=user_id)
+    return user
 
 
 @router.put("/{user_id}", response_model=UserOut)

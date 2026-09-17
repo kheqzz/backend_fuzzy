@@ -2,8 +2,7 @@ import datetime
 from typing import TYPE_CHECKING, List
 from uuid import UUID, uuid4
 
-from sqlalchemy import String, DateTime, func, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy import String, DateTime, func, ForeignKey, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -17,7 +16,7 @@ class IoTDevice(Base):
     __tablename__ = "iot_devices"
 
     iot_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid4,
     )
@@ -39,7 +38,7 @@ class IoTDeviceSensor(Base):
     __tablename__ = "iot_device_sensors"
 
     sensor_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid4,
     )
@@ -67,7 +66,7 @@ class SensorSnapshot(Base):
 
     __tablename__ = "sensor_snapshots"
 
-    snapshots_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    snapshots_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     iot_device_id: Mapped[UUID] = mapped_column(ForeignKey("iot_devices.iot_id", ondelete='CASCADE'), nullable=False)
     sensor_id: Mapped[UUID] = mapped_column(ForeignKey("iot_device_sensors.sensor_id", ondelete='CASCADE'), nullable=False)
     sensor_value: Mapped[float] = mapped_column(nullable=False)

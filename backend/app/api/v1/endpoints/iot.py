@@ -73,6 +73,7 @@ async def delete_iot_device(
         raise ex.EntityNotFoundError(entity_name="IoTDevice", entity_id=device_id)
     return device
 
+# Sensor Endpoints
 @router.post('/devices/{device_id}/sensors', response_model=IoTDeviceSensorOut)
 async def create_iot_device_sensor(
     device_id: UUID,
@@ -92,19 +93,32 @@ async def get_iot_device_sensors(
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user)
 ):
+    """Check if the sensor is owned by the current user"""
+    
     """Get all sensors for a specific IoT device."""
     sensors = await sensor_service.get_all_sensors_by_iot_id(db, device_id)
     return sensors
 
-@router.delete('/sensors/{sensor_id}', response_model=IoTDeviceSensorOut)
+@router.put('/sensors/')
+
+@router.delete('/sensors/{sensor_id}')
 async def delete_iot_device_sensor(
     sensor_id: UUID,
     sensor_service: IoTSensorService = Depends(getIoTDeviceSensorService),
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user)
 ):
+    """Check if the sensor exists"""
+    sensor = await sensor_service.get_sensor_by_id(db, sensor_id)
+    if not sensor:
+        raise ex.EntityNotFoundError(entity_name="Sensor", entity_id=sensor_id)
+    """Check if the sensor belongs to the current user"""
+    
+    owner = await sensor_service.check_sensor_ownership(db, sensor_id, current_user.id)
+    if not owner:
+        raise ex.UnauthorizedError(message="User is not authorized to access this sensor")
     """Delete a specific sensor by ID."""
     sensor = await sensor_service.delete_sensor(db, sensor_id)
     if not sensor:
-        raise ex.EntityNotFoundError(entity_name="IoTDeviceSensor", entity_id=sensor_id)
-    return sensor
+        raise ex.EntityNotFoundError(entity_name="Sensor", entity_id=sensor_id)
+    return "Sensor deleted successfully"

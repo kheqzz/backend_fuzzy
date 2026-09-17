@@ -8,10 +8,10 @@ from fastapi import HTTPException
 class AppException(HTTPException):
     """Base exception for custom exceptions."""
 
-    def __init__(self, message: str, status_code: int = 400):
+    def __init__(self, message: str, status_code: int = 400, headers: dict | None = None):
         self.message = message
         self.status_code = status_code
-        super().__init__(detail=message, status_code=status_code)
+        super().__init__(detail=message, status_code=status_code, headers=headers)
 
 
 class EntityNotFoundError(AppException):
@@ -71,5 +71,4 @@ class UnauthorizedError(AppException):
     """Raised when the user is not authenticated."""
 
     def __init__(self, message: str = "Not authenticated", headers: dict | None = None):
-        self.headers = headers
-        super().__init__(message=message, status_code=401)
+        super().__init__(message=message, status_code=401, headers=headers)

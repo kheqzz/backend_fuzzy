@@ -113,6 +113,15 @@ class IoTSensorService(BaseService[IoTDeviceSensorRepository]):
         if not sensor:
             raise ex.EntityNotFoundError(entity_id=sensor_id, entity_name="IoTDeviceSensor")
         return sensor
+
+    async def check_sensor_ownership(self, db:AsyncSession, sensor_id: UUID, user_id: UUID) -> Optional[UUID]:
+        """
+        Check if the sensor belongs to the current user.
+        """
+        owner = await self.repository.get_sensor_ownership(db, sensor_id)
+       
+        return owner
+
     async def get_all_sensors_by_iot_id(self, db: AsyncSession, iot_id: UUID) -> Sequence["IoTDeviceSensor"]:
         """
         Retrieve all IoT sensors associated with a specific IoT device ID.

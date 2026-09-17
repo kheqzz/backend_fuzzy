@@ -4,7 +4,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app import db
+
 
 class PaginationHelper:
     """Helper class for pagination functionality."""
@@ -27,8 +27,6 @@ class PaginationHelper:
         # Get total count
         total_query = select(func.count()).select_from(query.subquery())
         total_count = await db.scalar(total_query) or 0
-        # This is a placeholder - actual implementation would depend on DB type
-        total_count = await db.scalar(total_query)
 
         # Apply pagination
         paginated_query = query.offset(offset).limit(per_page)
